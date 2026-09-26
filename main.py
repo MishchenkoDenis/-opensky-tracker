@@ -6,20 +6,32 @@ response = requests.get(url)
 if response.status_code == 200:
     print("Response: 200")
     data = response.json()
-    a = data['states']
-    lenght = len(a)
-    country = []
-    for i in a:
-        country.append(i[2]) # top5 стран в воздухе
-    country_uniqon = set(country)
-    print(len(country_uniqon))
+    
+    aircrafts = data['states']
+    
+    count_aircrafts = len(aircrafts)
+    print(f"Всего самолётов: {count_aircrafts}")
 
-    counts_contry = {}
-    for i in country:
-        counts_contry[i] = counts_contry.get(i, 0) + 1
-    top5 = sorted(counts_contry.items(), key=lambda item:item[1], reverse=True)[:5]
-    b = []
-    for i in top5:
-        b.append(i[0])
+    countries = []
+    for plane in aircrafts:
+        # plane — это страна согласно документации OpenSky API
+        country_name = plane
+        if country_name:  # проверка, чтобы не добавить пустые значения
+            countries.append(country_name)
 
-    print(b)
+    unique_countries = set(countries)
+    print(f"Уникальных стран: {len(unique_countries)}")
+
+    counts_country = {}
+    for c in countries:
+        counts_country[c] = counts_country.get(c, 0) + 1
+    
+    top5 = sorted(counts_country.items(), key=lambda item: item, reverse=True)[:5]
+    
+    top5_names = []
+    for item in top5:
+        top5_names.append(item)
+
+    print("Топ 5 стран:", top5_names)
+else:
+    print(f"Ошибка запроса: {response.status_code}")
