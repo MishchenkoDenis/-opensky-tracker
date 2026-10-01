@@ -23,7 +23,7 @@ def fly():
         counts_aitcrafts = len(df)
 
         a = df['страна_происхождения'].value_counts()
-        a.to_excel("отчет.xlsx",  engine='openpyxl')
+        a.to_excel("te.xlsx",  engine='openpyxl')
 
         b = a.head(5) / len(df) * 100
         # print(b)
