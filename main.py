@@ -2,47 +2,48 @@ import requests
 import pandas as pd
 
 
-def fly():
 
+def extract():
     url = 'https://opensky-network.org/api/states/all'
     response = requests.get(url, timeout=50)
 
     if response.status_code == 200:
         # print("Response: 200")
         data = response.json()
-        
-        aircrafts = data['states']
-        columns = [
-        'код_icao24', 'позывной', 'страна_происхождения', 'время_позиции', 'последний_контакт',
-        'долгота', 'широта', 'барометрическая_высота', 'на_земле', 'скорость',
-        'истинный_курс', 'вертикальная_скорость', 'датчики', 'геометрическая_высота',
-        'код_ответчика', 'spi_сигнал', 'источник_позиции']
+        return data
 
-        df = pd.DataFrame(aircrafts, columns=columns)
-        print(df.head())
-        counts_aitcrafts = len(df)
+def transform(data):
+    aircrafts = data['states']
+    columns = [
+    'код_icao24', 'позывной', 'страна_происхождения', 'время_позиции', 'последний_контакт',
+    'долгота', 'широта', 'барометрическая_высота', 'на_земле', 'скорость',
+    'истинный_курс', 'вертикальная_скорость', 'датчики', 'геометрическая_высота',
+    'код_ответчика', 'spi_сигнал', 'источник_позиции']
+    df = pd.DataFrame(aircrafts, columns=columns)
+    return df
 
-        a = df['страна_происхождения'].value_counts()
-        a.to_excel("te.xlsx",  engine='openpyxl')
+def load(df):
+    a = df['страна_происхождения'].value_counts()
+    a.to_excel("te.xlsx",  engine='openpyxl')
 
-        b = a.head(5) / len(df) * 100
-        # print(b)
+        # b = a.head(5) / len(df) * 100
+        # # print(b)
 
-        sum_us= (df['страна_происхождения'] == 'United States').sum()
-        # print(sum_us)
-        print(df.info())
+        # sum_us= (df['страна_происхождения'] == 'United States').sum()
+        # # print(sum_us)
+        # print(df.info())
 
-        df_2 = df[['время_позиции','долгота','широта','последний_контакт']]
-        print(df_2.describe())
+        # df_2 = df[['время_позиции','долгота','широта','последний_контакт']]
+        # print(df_2.describe())
 
-        air = (df['на_земле'] == False).sum()
-        print(air)
-        air_2 = df[df['на_земле'] == False]
-        print(len(air_2))
+        # air = (df['на_земле'] == False).sum()
+        # print(air)
+        # air_2 = df[df['на_земле'] == False]
+        # print(len(air_2))
 
 
-        count_aircrafts = len(aircrafts)
-        print(f"Всего самолётов: {count_aircrafts}")
+        # count_aircrafts = len(aircrafts)
+        # print(f"Всего самолётов: {count_aircrafts}")
 
         # countries = []
         # for plane in aircrafts:
@@ -69,4 +70,8 @@ def fly():
     # else:
     #     print(f"Ошибка запроса: {response.status_code}")
 
-fly()
+if __name__ == '__main__':
+    extract()
+    transform()
+    load()
+

@@ -1,28 +1,17 @@
 import time
 from datetime import datetime
+from main import extract, transform, load
 
 
-def extract():
-    print("Extract")
+interval = 15
 
+def pipline():
+    print(datetime.now())
+    data =  extract()
+    df =  transform(data)
+    load(df)
+    print(datetime.now())
 
-def tranform():
-    print("Transform")
-
-
-def load():
-        print("Load")
-
-tasks = [extract, tranform, load]
-
-
-def pipelin():
-    for i in tasks:
-         i()
-
-
-for i in range(3):
-    print(f'Старт: {datetime.now()}')
-    pipelin()
-    time.sleep(3)
-
+while True:
+    pipline()
+    time.sleep(interval)
