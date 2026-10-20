@@ -1,77 +1,141 @@
-import requests
+import logging
+
 import pandas as pd
+import requests
 
+API_URL = "https://opensky-network.org/api/states/all"
+OUTPUT_FILE = "te.xlsx"
 
+logger = logging.getLogger("opensky")
 
 def extract():
-    url = 'https://opensky-network.org/api/states/all'
-    response = requests.get(url, timeout=50)
+    logger.info("EXTRACT: отправляем запрос к OpenSky API")
 
-    if response.status_code == 200:
-        # print("Response: 200")
-        data = response.json()
-        return data
+    response = requests.get(API_URL, timeout=50)
+
+    # Если API вернул ошибку HTTP — вызываем исключение
+    response.raise_for_status()
+
+    data = response.json()
+
+    if not isinstance(data, dict):
+        raise ValueError("Некорректный формат ответа API")
+
+    aircrafts = data.get("states")
+
+    if not isinstance(aircrafts, list):
+        raise ValueError("В ответе API отсутствует список states")
+
+    if len(aircrafts) == 0:
+        logger.warning("EXTRACT: API вернул пустой список самолётов")
+
+    logger.info(
+        "EXTRACT: получено %s самолётов",
+        len(aircrafts)
+    )
+
+    return data
 
 def transform(data):
-    aircrafts = data['states']
+    logger.info("TRANSFORM: начинаем обработку данных")
+
+    aircrafts = data["states"]
+
     columns = [
-    'код_icao24', 'позывной', 'страна_происхождения', 'время_позиции', 'последний_контакт',
-    'долгота', 'широта', 'барометрическая_высота', 'на_земле', 'скорость',
-    'истинный_курс', 'вертикальная_скорость', 'датчики', 'геометрическая_высота',
-    'код_ответчика', 'spi_сигнал', 'источник_позиции']
+        "код_icao24",
+        "позывной",
+        "страна_происхождения",
+        "время_позиции",
+        "последний_контакт",
+        "долгота",
+        "широта",
+        "барометрическая_высота",
+        "на_земле",
+        "скорость",
+        "истинный_курс",
+        "вертикальная_скорость",
+        "датчики",
+        "геометрическая_высота",
+        "код_ответчика",
+        "spi_сигнал",
+        "источник_позиции"
+    ]
+
     df = pd.DataFrame(aircrafts, columns=columns)
+
+    logger.info(
+        "TRANSFORM: создан DataFrame из %s строк",
+        len(df)
+    )
+
+    df["позывной"] = df["позывной"].str.strip()
+
+    countries_count = df["страна_происхождения"].nunique()
+
+    logger.info(
+        "TRANSFORM: обнаружено %s уникальных стран",
+        countries_count
+    )
+
+    flying_count = (df["на_земле"] == False).sum()
+
+    logger.info(
+        "TRANSFORM: самолётов в воздухе — %s",
+        flying_count
+    )
+
+    missing_coordinates = df[
+        ["широта", "долгота"]
+    ].isna().any(axis=1).sum()
+
+    if missing_coordinates > 0:
+        logger.warning(
+            "TRANSFORM: у %s самолётов отсутствуют координаты",
+            missing_coordinates
+        )
+
+    logger.info("TRANSFORM: обработка завершена")
+
     return df
 
 def load(df):
-    a = df['страна_происхождения'].value_counts()
-    a.to_excel("te.xlsx",  engine='openpyxl')
+    logger.info("LOAD: начинаем сохранение данных")
 
-        # b = a.head(5) / len(df) * 100
-        # # print(b)
+    country_counts = df[
+        "страна_происхождения"
+    ].value_counts()
 
-        # sum_us= (df['страна_происхождения'] == 'United States').sum()
-        # # print(sum_us)
-        # print(df.info())
+    country_counts.to_excel(
+        OUTPUT_FILE,
+        engine="openpyxl"
+    )
 
-        # df_2 = df[['время_позиции','долгота','широта','последний_контакт']]
-        # print(df_2.describe())
+    logger.info(
+        "LOAD: данные сохранены в файл %s",
+        OUTPUT_FILE
+    )
 
-        # air = (df['на_земле'] == False).sum()
-        # print(air)
-        # air_2 = df[df['на_земле'] == False]
-        # print(len(air_2))
+    logger.info(
+        "LOAD: сохранено %s стран",
+        len(country_counts)
+    )
 
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(message)s"
+    )
 
-        # count_aircrafts = len(aircrafts)
-        # print(f"Всего самолётов: {count_aircrafts}")
+    logger.info("Запуск ETL из main.py")
 
-        # countries = []
-        # for plane in aircrafts:
-        #     # plane — это страна согласно документации OpenSky API
-        #     country_name = plane
-        #     if country_name:  # проверка, чтобы не добавить пустые значения
-        #         countries.append(country_name)
+    try:
+        data = extract()
+        df = transform(data)
+        load(df)
 
-        # unique_countries = set(countries)
-        # print(f"Уникальных стран: {len(unique_countries)}")
+    except Exception:
+        logger.exception("Ошибка выполнения ETL")
+        raise
 
-        # counts_country = {}
-        # for c in countries:
-        #     counts_country[c] = counts_country.get(c, 0) + 1
-
-        # print(counts_country)
-    #     top5 = sorted(counts_country.items(), key=lambda item: item, reverse=True)[:5]
-        
-    #     top5_names = []
-    #     for item in top5:
-    #         top5_names.append(item)
-
-    #     print("Топ 5 стран:", top5_names)
-    # else:
-    #     print(f"Ошибка запроса: {response.status_code}")
-
-if __name__ == '__main__':
-    extract()
-    transform()
-    load()
-
+    else:
+        logger.info("ETL успешно завершён")
