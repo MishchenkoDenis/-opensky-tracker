@@ -106,6 +106,7 @@ def load(df):
     ].value_counts()
 
     country_counts.to_excel(
+ 
         OUTPUT_FILE,
         engine="openpyxl"
     )
